@@ -8,6 +8,7 @@ from pdfminer.pdfinterp import PDFPageInterpreter
 from pdfminer.layout import *
 from pdfminer.converter import PDFPageAggregator
 from os.path import join
+import re
 
 
 def mining_pdf(pdf_dir, txt_dir, filename):
@@ -42,3 +43,13 @@ def mining_pdf(pdf_dir, txt_dir, filename):
                     output_path = join(txt_dir, txtname)
                     with open(output_path, 'a') as f:
                         f.write(x.get_text().encode('utf-8') + '\n')
+    fp.close()
+
+
+def text_rep(in_dir, file, out_dir):
+    with open(join(in_dir,file), 'r') as f:
+        str = f.read()
+        pattern = re.compile(r'([^\n])\n([^\n])')
+        result = pattern.sub(r'\1\2', str)  # 剔除换行符
+        with open(join(out_dir, file), 'w') as fout:
+            fout.write(result)
