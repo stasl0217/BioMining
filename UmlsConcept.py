@@ -1,7 +1,4 @@
 class UmlsConcept:
-    def __init__(self,CUI, typeID, begin, end, preferred_text):
-        self.CUI=CUI
-        self.typeID=typeID
-        self.begin=begin
-        self.end=end
+    def __init__(self, CUI, preferred_text):
+        self.CUI = CUI  # CUI for UMLS
         self.preferred_text=preferred_text
