@@ -114,5 +114,12 @@ for child in root:
             NEmention_element = child.attrib  # XML content (dictionary)
             mention = extract_concept(NEmention_element, FSArrays, UmlsConcepts)  # UmlsConcept (with position info)
             if mention is not None:
-                mention.show()
+                # mention.show()
                 concept_mentions.append(mention)
+
+mentions={}
+for m in concept_mentions:
+    mentions[m.begin]=m
+
+for pair in sorted(mentions.items()):
+    pair[1].show()
