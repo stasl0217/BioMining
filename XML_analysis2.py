@@ -21,11 +21,11 @@ types = ['org.apache.ctakes.typesystem.type.textsem.MedicationMention',
 N = len(types)
 
 
-def scan_FSArrays(root):
+def scan_FSArrays(tree):
     '''
     scan the whole XML element tree for ONCE,
     and save all FSArrays in a dictionary.
-    :param root: root of XML element tree
+    :param tree: root of XML element tree
     :return: { FSArray_id: [id1, id2, ...] }
     '''
     FSArrays = {}
@@ -39,13 +39,13 @@ def scan_FSArrays(root):
     return FSArrays
 
 
-def scan_UmlsConcepts(root):
-    '''
+def scan_UmlsConcepts(tree):
+    """
     scan the whole XML element tree for ONCE,
     and save all FSArrays in a dictionary.
-    :param root: root of XML element tree
+    :param tree: root of XML element tree
     :return concepts: = { id : CUI }
-    '''
+    """
     concepts = {}  # all UmlsConcepts listed in the XML document
     for ccpt in tree.iter(tag='org.apache.ctakes.typesystem.type.refsem.UmlsConcept'):
         id = ccpt.attrib['_id']
@@ -54,9 +54,33 @@ def scan_UmlsConcepts(root):
     return concepts
 
 
-def extract_concept(ccptmention_dict, FSArrays, concepts):
-    '''
+def scan_sentence_info(tree):
+    """
+        scan the whole XML element tree for ONCE,
+        and save the sentence break information.
+        For every sentence, get its id and beginning/ending position.
 
+        NOTE:
+        here we assume @sentences(list) is naturally ordered by id(sentenceNumber)
+        because they are read in sequence from XML.
+        However, if there are multiple threads or other cases when the assumption cannot hold,
+        extra SORTING is required here
+
+        :param root: root of XML element tree
+        :return: [ tuple (id1, begin1, end1) ...]  naturally ordered by id (reading in sequence from XML)
+        """
+    sentences = []  # all UmlsConcepts listed in the XML document
+    for el in tree.iter(tag='org.apache.ctakes.typesystem.type.textspan.Sentence'):
+        id = el.attrib['sentenceNumber']  # not '_id', which indicates element ids in this XML document
+        begin = int(el.attrib['begin'])
+        end = int(el.attrib['end'])
+        sentences.append((id, begin, end))  # tuple (immutable)
+    print(sentences)
+    return sentences
+
+
+def extract_concept(ccptmention_dict, FSArrays, concepts, sentence_list):
+    """
     :param ccptmention_dict:
     XML attributes stored in a dict.
     This element MUST be an Named Entity mention element whose tag is in @types.
@@ -65,7 +89,7 @@ def extract_concept(ccptmention_dict, FSArrays, concepts):
     :return:
     :raise:
     KeyError, IndexError
-    '''
+    """
     try:
         mention_id = ccptmention_dict['_id']
         type_id = int(ccptmention_dict['typeID'])
@@ -81,7 +105,7 @@ def extract_concept(ccptmention_dict, FSArrays, concepts):
             umls_id = umls_ids[0]
             umls = concepts[umls_id]  # UmlsConcept object
             # last row may raise KeyError (if concepts passed in are not right)
-            concept_mention = ConceptMention(mention_id, type_id, begin, end, umls)
+            concept_mention = ConceptMention(mention_id, type_id, begin, end, umls, sentence_list)
             return concept_mention
 
         else:
@@ -99,9 +123,11 @@ f = files[0]  # TODO: use loop
 tree = ET.ElementTree(file=f)
 root = tree.getroot()  # get the root element as Element object
 
-FSArrays = scan_FSArrays(tree)
 # TODO: exception handling
+# scan for elements
+FSArrays = scan_FSArrays(tree)
 UmlsConcepts = scan_UmlsConcepts(tree)
+sentence_list = scan_sentence_info(tree)  # [ tuple (id1, begin1, end1) ...]
 
 concept_mentions = []
 
@@ -111,15 +137,16 @@ for child in root:
     for typeID in range(0, N):
         if tag == types[typeID]:
             # found the Named Entity (concept) mention element
-            NEmention_element = child.attrib  # XML content (dictionary)
-            mention = extract_concept(NEmention_element, FSArrays, UmlsConcepts)  # UmlsConcept (with position info)
+            attributes = child.attrib  # XML content (dictionary)
+            mention = extract_concept(attributes, FSArrays, UmlsConcepts,
+                                      sentence_list)  # UmlsConcept (with position info)
             if mention is not None:
                 # mention.show()
                 concept_mentions.append(mention)
 
-mentions={}
+mentions = {}
 for m in concept_mentions:
-    mentions[m.begin]=m
+    mentions[m.begin] = m
 
 for pair in sorted(mentions.items()):
     pair[1].show()
