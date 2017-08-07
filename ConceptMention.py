@@ -1,5 +1,5 @@
 class ConceptMention:
-    def __init__(self, id, typeID, begin, end, umls):
+    def __init__(self, id, typeID, begin, end, umls, sentence_list):
         """
         :param id: id of the ConceptMention element
         :param typeID: int. as might be used as array index
@@ -12,12 +12,36 @@ class ConceptMention:
         self.begin = begin  # int
         self.end = end  # int
         self.umls = umls  # Umlsconcept object
+        self.sentence = self.locate_sentence(sentence_list)
+
+    def locate_sentence(self, sentences):
+        """
+        :param sentences: [ Sentence objects] (ordered by id)
+        :return: sentence id
+        """
+        # binary search
+        low = 0
+        high = len(sentences) - 1
+        while low <= high:
+            mid = low + (high - low) / 2  # avoid overflow
+            if self.begin < sentences[mid].begin:
+                high = mid-1
+            elif self.begin > sentences[mid].begin:
+                if self.begin <= sentences[mid].end:
+                    return sentences[mid].id
+                else:
+                    low = mid+1
+            else:  # self.begin==sentences[mid].begin
+                return sentences[mid].id
+
+        return 1
 
     def show(self):
         # TODO
         print('*** CONCEPT MENTION ***')
         print('id: ' + self.id)
         print('UMLS preferred text: ' + self.umls.preferred_text)
+        print('sentence NO.:' + str(self.sentence))
         print('typeId: ' + str(self.typeID))
         print('UMLS CUI:' + self.umls.CUI)
         print('begin: ' + str(self.begin))
