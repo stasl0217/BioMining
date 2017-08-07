@@ -10,8 +10,9 @@ from UmlsConcept import UmlsConcept
 from ConceptMention import ConceptMention
 from Sentence import Sentence
 
-xmldir = r'C:\Users\sinte\Desktop\test\output_umls_neg'
-files = [join(xmldir, f) for f in listdir(xmldir) if isfile(join(xmldir, f))]
+xmldir = r'C:\Users\sinte\LULU\lab\biomining\xml'
+outdir = r'C:\Users\sinte\LULU\lab\biomining\itemsets'
+files = [ f for f in listdir(xmldir) if isfile(join(xmldir, f))]
 
 # typeID = index
 types = ['org.apache.ctakes.typesystem.type.textsem.MedicationMention',
@@ -36,7 +37,6 @@ def scan_FSArrays(tree):
         for child in FSArray:
             ids.append(child.text)
         FSArrays[FSArray_id] = ids
-    print(FSArrays)
     return FSArrays
 
 
@@ -51,7 +51,6 @@ def scan_UmlsConcepts(tree):
     for ccpt in tree.iter(tag='org.apache.ctakes.typesystem.type.refsem.UmlsConcept'):
         id = ccpt.attrib['_id']
         concepts[id] = UmlsConcept(ccpt.attrib['cui'], ccpt.attrib['preferredText'])
-    print(concepts)
     return concepts
 
 
@@ -107,14 +106,15 @@ def extract_concept(ccptmention_dict, FSArrays, concepts, sentence_list):
             umls_id = umls_ids[0]
             umls = concepts[umls_id]  # UmlsConcept object
             # last row may raise KeyError (if concepts passed in are not right)
-            concept_mention = ConceptMention(mention_id, type_id, begin, end, umls, sentence_list,negated)
+            concept_mention = ConceptMention(mention_id, type_id, begin, end, umls, sentence_list, negated)
             return concept_mention
 
         else:
             # normally there shouldn't be an empty FSArray
             raise IndexError('empty FSArray:' + str(FSArray_id))
 
-    except KeyError:
+    except KeyError as e:
+        print(e)
         print(ccptmention_dict)
         print('trouble when trying to extract concept from the concept-mentioning element')
 
@@ -130,48 +130,57 @@ def find_itemsets(concept_mentions):
     return itemsets
 
 
-def print_itemsets(itemsets):
-    for key, value in itemsets.items():
-        concept_mentions = value
-        print('*** ITEMSET ***')
-        for cm in concept_mentions:
-            print(cm.text())
-        print('*** END ***')
-        print('')
+def write_itemsets(outpath, itemsets):
+    with open(outpath, 'w') as fout:
+        for key, value in itemsets.items():
+            concept_mentions = value
+            for cm in concept_mentions:
+                fout.write(cm.text()+'; ')
+            fout.write('\n')
 
 
-f = files[0]  # TODO: use loop
+for fname in files:
+    f=join(xmldir,fname)
+    print(f)
 
-# create an element tree for this XML file
-tree = ET.ElementTree(file=f)
-root = tree.getroot()  # get the root element as Element object
+    try:
+        # create an element tree for this XML file
+        tree = ET.ElementTree(file=f)
+        root = tree.getroot()  # get the root element as Element object
+    except Exception:
+        print('Error when trying to parse XML')
+        print('filename: {0}', f)
 
-# scan for elements
-FSArrays = scan_FSArrays(tree)
-UmlsConcepts = scan_UmlsConcepts(tree)
-sentence_list = scan_sentence_info(tree)  # [ tuple (id1, begin1, end1) ...]
+    # scan for elements
+    FSArrays = scan_FSArrays(tree)
+    UmlsConcepts = scan_UmlsConcepts(tree)
+    sentence_list = scan_sentence_info(tree)  # [ tuple (id1, begin1, end1) ...]
 
-concept_mentions = []
+    concept_mentions = []
 
-# extract all Umls Concept from Named Entity (concept) mentions
-for child in root:
-    tag = child.tag
-    for typeID in range(0, N):
-        if tag == types[typeID]:
-            # found the Named Entity (concept) mention element
-            attributes = child.attrib  # XML content (dictionary)
-            mention = extract_concept(attributes, FSArrays, UmlsConcepts,
-                                      sentence_list)  # UmlsConcept (with position info)
-            if mention is not None:
-                # mention.show()
-                concept_mentions.append(mention)
+    # extract all Umls Concept from Named Entity (concept) mentions
+    for child in root:
+        tag = child.tag
+        for typeID in range(0, N):
+            if tag == types[typeID]:
+                # found the Named Entity (concept) mention element
+                attributes = child.attrib  # XML content (dictionary)
+                mention = extract_concept(attributes, FSArrays, UmlsConcepts,
+                                          sentence_list)  # UmlsConcept (with position info)
+                if mention is not None:
+                    # mention.show()
+                    concept_mentions.append(mention)
 
-# print
-mentions = {}  # { sentenceNumber: ConceptMention object}
-for m in concept_mentions:
-    mentions[m.begin] = m
-for pair in sorted(mentions.items()):
-    pair[1].show()
+    # print
+    # mentions = {}  # { sentenceNumber: ConceptMention object}
+    # for m in concept_mentions:
+    #     mentions[m.begin] = m
+    # for pair in sorted(mentions.items()):
+    #     pair[1].show()
 
-itemsets = find_itemsets(concept_mentions)  # TODO: add window size
-print_itemsets(itemsets)
+    window = 3
+    itemsets = find_itemsets(concept_mentions)  # TODO: add window size
+
+    # write to file
+    fout=join(outdir,fname[:-8])
+    write_itemsets(fout, itemsets)
