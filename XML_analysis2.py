@@ -8,6 +8,7 @@ from os import listdir
 from os.path import isfile, join
 from UmlsConcept import UmlsConcept
 from ConceptMention import ConceptMention
+from Sentence import Sentence
 
 xmldir = r'C:\Users\sinte\Desktop\test\output_umls'
 files = [join(xmldir, f) for f in listdir(xmldir) if isfile(join(xmldir, f))]
@@ -74,8 +75,7 @@ def scan_sentence_info(tree):
         id = el.attrib['sentenceNumber']  # not '_id', which indicates element ids in this XML document
         begin = int(el.attrib['begin'])
         end = int(el.attrib['end'])
-        sentences.append((id, begin, end))  # tuple (immutable)
-    print(sentences)
+        sentences.append(Sentence(id, begin, end))  # tuple (immutable)
     return sentences
 
 
@@ -117,13 +117,32 @@ def extract_concept(ccptmention_dict, FSArrays, concepts, sentence_list):
         print('trouble when trying to extract concept from the concept-mentioning element')
 
 
+def find_itemsets(concept_mentions):
+    itemsets = {}  # { sentence Number : ConceptMention object}
+    for cm in concept_mentions:
+        sentence_id = cm.sentence
+        if itemsets.has_key(sentence_id):
+            itemsets[sentence_id].append(cm)
+        else:
+            itemsets[sentence_id] = [cm]
+    return itemsets
+
+def print_itemsets(itemsets):
+    for key,value in itemsets.items():
+        concept_mentions=value
+        print('*** ITEMSET ***')
+        for cm in concept_mentions:
+            print(cm.umls.preferred_text)
+        print('*** END ***')
+        print('')
+
+
 f = files[0]  # TODO: use loop
 
 # create an element tree for this XML file
 tree = ET.ElementTree(file=f)
 root = tree.getroot()  # get the root element as Element object
 
-# TODO: exception handling
 # scan for elements
 FSArrays = scan_FSArrays(tree)
 UmlsConcepts = scan_UmlsConcepts(tree)
@@ -144,9 +163,12 @@ for child in root:
                 # mention.show()
                 concept_mentions.append(mention)
 
-mentions = {}
+# print
+mentions = {}  # { sentenceNumber: ConceptMention object}
 for m in concept_mentions:
     mentions[m.begin] = m
-
 for pair in sorted(mentions.items()):
     pair[1].show()
+
+itemsets = find_itemsets(concept_mentions)  # TODO: add window size
+print_itemsets(itemsets)
