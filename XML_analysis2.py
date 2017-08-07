@@ -10,7 +10,7 @@ from UmlsConcept import UmlsConcept
 from ConceptMention import ConceptMention
 from Sentence import Sentence
 
-xmldir = r'C:\Users\sinte\Desktop\test\output_umls'
+xmldir = r'C:\Users\sinte\Desktop\test\output_umls_neg'
 files = [join(xmldir, f) for f in listdir(xmldir) if isfile(join(xmldir, f))]
 
 # typeID = index
@@ -96,6 +96,8 @@ def extract_concept(ccptmention_dict, FSArrays, concepts, sentence_list):
         begin = int(ccptmention_dict['begin'])  # beginning position of the phrase in the original text
         end = int(ccptmention_dict['end'])
         FSArray_id = ccptmention_dict['_ref_ontologyConceptArr']
+        polarity = ccptmention_dict['polarity']
+        negated = True if polarity == '-1' else False
 
         # there may be multiple UmlsConcept ids in one FSArray
         # However, in this case, they should all point to ONE entity in UMLS
@@ -105,7 +107,7 @@ def extract_concept(ccptmention_dict, FSArrays, concepts, sentence_list):
             umls_id = umls_ids[0]
             umls = concepts[umls_id]  # UmlsConcept object
             # last row may raise KeyError (if concepts passed in are not right)
-            concept_mention = ConceptMention(mention_id, type_id, begin, end, umls, sentence_list)
+            concept_mention = ConceptMention(mention_id, type_id, begin, end, umls, sentence_list,negated)
             return concept_mention
 
         else:
@@ -127,12 +129,13 @@ def find_itemsets(concept_mentions):
             itemsets[sentence_id] = [cm]
     return itemsets
 
+
 def print_itemsets(itemsets):
-    for key,value in itemsets.items():
-        concept_mentions=value
+    for key, value in itemsets.items():
+        concept_mentions = value
         print('*** ITEMSET ***')
         for cm in concept_mentions:
-            print(cm.umls.preferred_text)
+            print(cm.text())
         print('*** END ***')
         print('')
 

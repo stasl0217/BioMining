@@ -1,5 +1,5 @@
 class ConceptMention:
-    def __init__(self, id, typeID, begin, end, umls, sentence_list):
+    def __init__(self, id, typeID, begin, end, umls, sentence_list,negation=False):
         """
         :param id: id of the ConceptMention element
         :param typeID: int. as might be used as array index
@@ -13,6 +13,7 @@ class ConceptMention:
         self.end = end  # int
         self.umls = umls  # Umlsconcept object
         self.sentence = self.locate_sentence(sentence_list)
+        self.negation=negation
 
     def locate_sentence(self, sentences):
         """
@@ -42,9 +43,13 @@ class ConceptMention:
         print('id: ' + self.id)
         print('UMLS preferred text: ' + self.umls.preferred_text)
         print('sentence NO.:' + str(self.sentence))
+        print('Negated: ' + str(self.negation))
         print('typeId: ' + str(self.typeID))
         print('UMLS CUI:' + self.umls.CUI)
         print('begin: ' + str(self.begin))
         print('end: ' + str(self.end))
         print('*** END ***')
         print('')
+
+    def text(self):
+        return '{0} {1}'.format(self.umls.preferred_text, '(negated)' if self.negation else '')
