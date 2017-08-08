@@ -1,3 +1,5 @@
+'''Python version requirement: py2.7 (python 3 not supported)'''
+
 import os
 from os import listdir
 from os.path import isfile, join
