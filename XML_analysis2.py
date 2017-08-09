@@ -10,7 +10,8 @@ from os.path import isfile, join
 from UmlsConcept import UmlsConcept
 from ConceptMention import ConceptMention
 from Sentence import Sentence
-import traceback
+import traceback  # for exception
+import csv
 
 os.chdir(r'C:\Users\sinte\LULU\lab\biomining')
 xmldir = r'.\test_xml'  # '.\xml'
@@ -147,8 +148,9 @@ def save_itemsets(outpath, itemsets):
 def save_concepts_tsv(dir0, concepts):
     """
     APPEND Umls concepts extracted from the current XML
-    to a tsv file
-    (not csv, because the concept preferred text may contain commas)
+    to a csv file (delimiter: \t)
+     (using python csv module)
+
     NOTE: there may be REPLICATIONS in the final file
 
     File format:
@@ -161,14 +163,16 @@ def save_concepts_tsv(dir0, concepts):
     :param concepts: { id : UmlsConcept object }
     :return:
     """
-    filename = 'concepts.tsv'
+    filename = 'concepts.csv'
     try:
-        with open(join(dir0, filename), 'a') as fout:
+        with open(join(dir0, filename), 'a') as csvfile:
+            ccwriter = csv.writer(csvfile, delimiter='\t',
+                                  quotechar='|', quoting=csv.QUOTE_MINIMAL)
             for key, value in concepts.items():
                 umls = value
                 CUI = umls.CUI
                 text = umls.preferred_text
-                fout.write(CUI + '\t' + text+'\n')
+                ccwriter.writerow([CUI, text])
     except IOError as e:
         print(repr(e))
         traceback.print_exc()
