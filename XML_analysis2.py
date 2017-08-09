@@ -10,11 +10,12 @@ from os.path import isfile, join
 from UmlsConcept import UmlsConcept
 from ConceptMention import ConceptMention
 from Sentence import Sentence
+import traceback
 
 os.chdir(r'C:\Users\sinte\LULU\lab\biomining')
 xmldir = r'.\test_xml'  # '.\xml'
 outdir = r'.\itemsets'
-conceptdir = r'.\concepts'
+result_dir = r'.\result'
 
 files = [f for f in listdir(xmldir) if isfile(join(xmldir, f))]
 
@@ -118,10 +119,9 @@ def extract_concept(ccptmention_dict, FSArrays, concepts, sentence_list):
             raise IndexError('empty FSArray:' + str(FSArray_id))
 
     except KeyError as e:
-        print('Problem with attribute: {1}', e)
-        print(ccptmention_dict)
-        print(
-        'trouble when trying to extract concept from the concept-mentioning element. This element will be ignored')
+        print 'Problem with attribute: ', e
+        print ccptmention_dict
+        print 'trouble when trying to extract concept from the concept-mentioning element. This element will be ignored'
 
 
 def find_itemsets(concept_mentions):
@@ -135,7 +135,7 @@ def find_itemsets(concept_mentions):
     return itemsets
 
 
-def write_itemsets(outpath, itemsets):
+def save_itemsets(outpath, itemsets):
     with open(outpath, 'w') as fout:
         for key, value in itemsets.items():
             concept_mentions = value
@@ -144,34 +144,56 @@ def write_itemsets(outpath, itemsets):
             fout.write('\n')
 
 
-def write_concepts(outpath, concept_mentions):
-    # TODO: print concepts to file
-    mentions = {}  # { sentenceNumber: ConceptMention object}
-    for m in concept_mentions:
-        mentions[m.begin] = m
-    for pair in sorted(mentions.items()):
-        pair[1].show()
+def save_concepts_tsv(dir0, concepts):
+    """
+    APPEND Umls concepts extracted from the current XML
+    to a tsv file
+    (not csv, because the concept preferred text may contain commas)
+    NOTE: there may be REPLICATIONS in the final file
+
+    File format:
+    CUI    preferred text
+
+    e.g.:
+    C0007226    Cardiovascular system
+
+    :param dir0: where the file is
+    :param concepts: { id : UmlsConcept object }
+    :return:
+    """
+    filename = 'concepts.tsv'
+    try:
+        with open(join(dir0, filename), 'a') as fout:
+            for key, value in concepts.items():
+                umls = value
+                CUI = umls.CUI
+                text = umls.preferred_text
+                fout.write(CUI + '\t' + text+'\n')
+    except IOError as e:
+        print(repr(e))
+        traceback.print_exc()
 
 
 for fname in files:
 
     f = join(xmldir, fname)
-    print(f)
+    print f
 
     try:
         # create an element tree for this XML file
         tree = ET.ElementTree(file=f)
         root = tree.getroot()  # get the root element as Element object
     except Exception:
-        print('Error when trying to parse XML')
-        print('filename: {0}', f)
+        print 'Error when trying to parse XML'
+        print 'filename: ', f
 
     # scan for elements
     FSArrays = scan_FSArrays(tree)
-    UmlsConcepts = scan_UmlsConcepts(tree)
+    umls_concepts = scan_UmlsConcepts(tree)
     sentence_list = scan_sentence_info(tree)  # [ tuple (id1, begin1, end1) ...]
 
     # save UMLS concepts info
+    save_concepts_tsv(result_dir, umls_concepts)
 
     concept_mentions = []
 
@@ -183,7 +205,7 @@ for fname in files:
             if tag == types[typeID]:
                 # found the Named Entity (concept) mention element
                 attributes = child.attrib  # XML content (dictionary)
-                mention = extract_concept(attributes, FSArrays, UmlsConcepts,
+                mention = extract_concept(attributes, FSArrays, umls_concepts,
                                           sentence_list)  # UmlsConcept (with position info)
                 if mention is not None:
                     # mention.show()
@@ -193,4 +215,4 @@ for fname in files:
 
     # write to file
     fout = join(outdir, fname[:-4])
-    write_itemsets(fout, itemsets)
+    save_itemsets(fout, itemsets)
