@@ -4,15 +4,19 @@ try:
     import xml.etree.cElementTree as ET
 except ImportError:
     import xml.etree.ElementTree as ET
+import os
 from os import listdir
 from os.path import isfile, join
 from UmlsConcept import UmlsConcept
 from ConceptMention import ConceptMention
 from Sentence import Sentence
 
-xmldir = r'C:\Users\sinte\LULU\lab\biomining\xml'
-outdir = r'C:\Users\sinte\LULU\lab\biomining\itemsets'
-files = [ f for f in listdir(xmldir) if isfile(join(xmldir, f))]
+os.chdir(r'C:\Users\sinte\LULU\lab\biomining')
+xmldir = r'.\test_xml'  # '.\xml'
+outdir = r'.\itemsets'
+conceptdir = r'.\concepts'
+
+files = [f for f in listdir(xmldir) if isfile(join(xmldir, f))]
 
 # typeID = index
 types = ['org.apache.ctakes.typesystem.type.textsem.MedicationMention',
@@ -45,7 +49,7 @@ def scan_UmlsConcepts(tree):
     scan the whole XML element tree for ONCE,
     and save all FSArrays in a dictionary.
     :param tree: root of XML element tree
-    :return concepts: = { id : CUI }
+    :return concepts: = { id : UmlsConcept(CUI, preferred_text)}
     """
     concepts = {}  # all UmlsConcepts listed in the XML document
     for ccpt in tree.iter(tag='org.apache.ctakes.typesystem.type.refsem.UmlsConcept'):
@@ -114,9 +118,10 @@ def extract_concept(ccptmention_dict, FSArrays, concepts, sentence_list):
             raise IndexError('empty FSArray:' + str(FSArray_id))
 
     except KeyError as e:
-        print(e)
+        print('Problem with attribute: {1}', e)
         print(ccptmention_dict)
-        print('trouble when trying to extract concept from the concept-mentioning element')
+        print(
+        'trouble when trying to extract concept from the concept-mentioning element. This element will be ignored')
 
 
 def find_itemsets(concept_mentions):
@@ -135,12 +140,22 @@ def write_itemsets(outpath, itemsets):
         for key, value in itemsets.items():
             concept_mentions = value
             for cm in concept_mentions:
-                fout.write(cm.text()+'; ')
+                fout.write(cm.text() + '; ')
             fout.write('\n')
 
 
+def write_concepts(outpath, concept_mentions):
+    # TODO: print concepts to file
+    mentions = {}  # { sentenceNumber: ConceptMention object}
+    for m in concept_mentions:
+        mentions[m.begin] = m
+    for pair in sorted(mentions.items()):
+        pair[1].show()
+
+
 for fname in files:
-    f=join(xmldir,fname)
+
+    f = join(xmldir, fname)
     print(f)
 
     try:
@@ -156,8 +171,11 @@ for fname in files:
     UmlsConcepts = scan_UmlsConcepts(tree)
     sentence_list = scan_sentence_info(tree)  # [ tuple (id1, begin1, end1) ...]
 
+    # save UMLS concepts info
+
     concept_mentions = []
 
+    # CORE PART
     # extract all Umls Concept from Named Entity (concept) mentions
     for child in root:
         tag = child.tag
@@ -171,16 +189,8 @@ for fname in files:
                     # mention.show()
                     concept_mentions.append(mention)
 
-    # print
-    # mentions = {}  # { sentenceNumber: ConceptMention object}
-    # for m in concept_mentions:
-    #     mentions[m.begin] = m
-    # for pair in sorted(mentions.items()):
-    #     pair[1].show()
-
-    window = 3
-    itemsets = find_itemsets(concept_mentions)  # TODO: add window size
+    itemsets = find_itemsets(concept_mentions)
 
     # write to file
-    fout=join(outdir,fname[:-8])
+    fout = join(outdir, fname[:-4])
     write_itemsets(fout, itemsets)
