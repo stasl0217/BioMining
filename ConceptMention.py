@@ -38,7 +38,6 @@ class ConceptMention:
         return 1
 
     def show(self):
-        # TODO
         print('*** CONCEPT MENTION ***')
         print('id: ' + self.id)
         print('UMLS preferred text: ' + self.umls.preferred_text)
@@ -52,4 +51,4 @@ class ConceptMention:
         print('')
 
     def text(self):
-        return '{0} {1}'.format(self.umls.preferred_text, '(negated)' if self.negation else '')
+        return '{0} {1}'.format(self.umls.preferred_text, '[negated]' if self.negation else '')
