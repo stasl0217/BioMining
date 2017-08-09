@@ -3,16 +3,31 @@
 import os
 from os import listdir
 from os.path import isfile, join
-import pdf_miner
+from pdf_miner import PDF2text_helper
+import time
 
-pdf_dir= r'C:\Users\sinte\LULU\lab\biomining\unprocessed_pdf'
+start=time.clock()
+
+pdf_dir= r'C:\Users\sinte\LULU\lab\biomining\unprocessed\pdf'
+temp_dir= r'C:\Users\sinte\LULU\lab\biomining\unprocessed\txttemp'
+txt_dir=r'C:\Users\sinte\LULU\lab\biomining\unprocessed\txt'
+
+miner=PDF2text_helper(pdf_dir,temp_dir,txt_dir)
+
 files=[f for f in listdir(pdf_dir) if isfile(join(pdf_dir, f))]
-txt_dir1=r'C:\Users\sinte\LULU\lab\biomining\unprocessed_txttmp'
-for f in files:
-    pdf_miner.mining_pdf(pdf_dir,txt_dir1,f)
 
-txt_files=[f for f in listdir(txt_dir1) if isfile(join(txt_dir1, f))]
-txt_dir2=r'C:\Users\sinte\LULU\lab\biomining\unprocessed_txt'
-for f in txt_files:
-    pdf_miner.text_rep(txt_dir1,f,txt_dir2)
+for f in files:
+    try:
+        miner.mining_pdf(f)  # filename without path
+    except Exception as e:
+        print(f)
+        print(repr(e))
+
+
+end=time.clock()
+print('file number: {0}', str(len(files)))
+print('time: {0}', str((end-start)/1000000))
+
+
+
 
