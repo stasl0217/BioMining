@@ -1,7 +1,5 @@
 # coding: utf-8
 
-# TODO: finish document (input files)
-
 """
 == Notions
 1. UMLS: Unified Medical Language System (https://www.nlm.nih.gov/research/umls/)
