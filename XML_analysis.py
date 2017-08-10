@@ -43,19 +43,20 @@ import csv
 import time
 
 os.chdir(r'C:\Users\sinte\LULU\lab\biomining')
-xmldir = r'.\xml'  # '.\xml'
-outdir = r'.\itemsets'
-result_dir = r'.\result'
+# ** GLOBAL VALUES IN THIS MODULE **
+_xmldir = r'.\xml'  # '.\xml'
+_outdir = r'.\itemsets'
+_result_dir = r'.\result'
 
-files = [f for f in listdir(xmldir) if isfile(join(xmldir, f))]
+_files = [f for f in listdir(_xmldir) if isfile(join(_xmldir, f))]
 
 # typeID = index
-types = ['org.apache.ctakes.typesystem.type.textsem.MedicationMention',
+_types = ['org.apache.ctakes.typesystem.type.textsem.MedicationMention',
          'org.apache.ctakes.typesystem.type.textsem.DiseaseDisorderMention',
          'org.apache.ctakes.typesystem.type.textsem.ProcedureMention',
          'org.apache.ctakes.typesystem.type.textsem.SignSymptomMention',
          'org.apache.ctakes.typesystem.type.textsem.AnatomicalSiteMention']
-N = len(types)
+_N = len(_types)
 
 
 def scan_FSArrays(tree):
@@ -284,9 +285,9 @@ def save_itemsets_text(dir0, itemsets):
 
 
 def main():
-    for fname in files:
+    for fname in _files:
 
-        f = join(xmldir, fname)
+        f = join(_xmldir, fname)
         print f
 
         try:
@@ -303,7 +304,7 @@ def main():
         sentence_list = scan_sentence_info(tree)  # [ tuple (id1, begin1, end1) ...]
 
         # save UMLS concepts info
-        save_concepts_csv(result_dir, umls_concepts)
+        save_concepts_csv(_result_dir, umls_concepts)
 
         concept_mentions = []  # [ConceptMention objects]
 
@@ -311,8 +312,8 @@ def main():
         # extract all Umls Concept from Named Entity (concept) mentions
         for child in root:
             tag = child.tag
-            for typeID in range(0, N):
-                if tag == types[typeID]:
+            for typeID in range(0, _N):
+                if tag == _types[typeID]:
                     # found the Named Entity (concept) mention element
                     attributes = child.attrib  # XML content (dictionary)
                     mention = extract_concept(attributes, FSArrays, umls_concepts,
@@ -324,13 +325,13 @@ def main():
         itemsets = find_itemsets(concept_mentions)
 
         # write to file
-        save_itemsets(result_dir, itemsets)
-        save_itemsets_text(result_dir, itemsets)
+        save_itemsets(_result_dir, itemsets)
+        save_itemsets_text(_result_dir, itemsets)
 
 
 if __name__ == "__main__":
     start_time = time.time()
     main()
     print 'FINISHED'
-    print '%d files' % len(files)
+    print '%d files' % len(_files)
     print 'seconds:', str(time.time() - start_time)
