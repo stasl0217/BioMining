@@ -125,9 +125,20 @@ def extract_concept(ccptmention_dict, FSArrays, concepts, sentence_list):
     """
     :param ccptmention_dict:
     XML attributes stored in a dict.
-    This element MUST be an Named Entity mention element whose tag is in @types.
-    The original XML element content ( the input is its attributes) can be like:
-    <org.apache.ctakes.typesystem.type.textsem.MedicationMention _indexed="1" _id="2608" _ref_sofa="3" begin="337" end="344" id="16" _ref_ontologyConceptArr="2602" typeID="1" segmentID="SIMPLE_SEGMENT" discoveryTechnique="1" confidence="0.22500001" polarity="1" uncertainty="0" conditional="false" generic="false" subject="patient" historyOf="0" _ref_medicationFrequency="3744" _ref_medicationStatusChange="3711" _ref_medicationStrength="3778" _ref_startDate="3827"/>
+    This element MUST be an Named Entity mention element whose tag is in types.
+
+    An example of the original XML element content
+    (input is its attributes):
+
+    <org.apache.ctakes.typesystem.type.textsem.MedicationMention _indexed="1"
+        _id="2608" _ref_sofa="3" begin="337" end="344" id="16"
+        _ref_ontologyConceptArr="2602" typeID="1" segmentID="SIMPLE_SEGMENT"
+        discoveryTechnique="1" confidence="0.22500001"
+        polarity="1" uncertainty="0" conditional="false" generic="false"
+        subject="patient" historyOf="0" _ref_medicationFrequency="3744"
+        _ref_medicationStatusChange="3711" _ref_medicationStrength="3778"
+        _ref_startDate="3827"/>
+
     :return:
     :raise:
     KeyError, IndexError
