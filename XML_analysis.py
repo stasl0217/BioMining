@@ -46,16 +46,16 @@ os.chdir(r'C:\Users\sinte\LULU\lab\biomining')
 # ** GLOBAL VALUES IN THIS MODULE **
 _xmldir = r'.\xml'  # '.\xml'
 _outdir = r'.\itemsets'
-_result_dir = r'.\result'
+_result_dir = r'.\result_test'
 
 _files = [f for f in listdir(_xmldir) if isfile(join(_xmldir, f))]
 
 # typeID = index
 _types = ['org.apache.ctakes.typesystem.type.textsem.MedicationMention',
-         'org.apache.ctakes.typesystem.type.textsem.DiseaseDisorderMention',
-         'org.apache.ctakes.typesystem.type.textsem.ProcedureMention',
-         'org.apache.ctakes.typesystem.type.textsem.SignSymptomMention',
-         'org.apache.ctakes.typesystem.type.textsem.AnatomicalSiteMention']
+          'org.apache.ctakes.typesystem.type.textsem.DiseaseDisorderMention',
+          'org.apache.ctakes.typesystem.type.textsem.ProcedureMention',
+          'org.apache.ctakes.typesystem.type.textsem.SignSymptomMention',
+          'org.apache.ctakes.typesystem.type.textsem.AnatomicalSiteMention']
 _N = len(_types)
 
 
@@ -263,7 +263,6 @@ def save_itemsets(dir0, itemsets):
         traceback.print_exc()
 
 
-
 def save_itemsets_text(dir0, itemsets):
     """
     APPEND the text form of itemsets (preferred text of all concepts)
@@ -290,6 +289,42 @@ def save_itemsets_text(dir0, itemsets):
     except IOError as e:
         print(repr(e))
         traceback.print_exc()
+    except UnicodeEncodeError as ue:
+        print(repr(ue))
+        traceback.print_exc()
+
+
+def save_same_source_concepts(concept_mentions):
+    """
+    Find extracted concepts from the same text
+    So they cannot appear at the same time in one itemset
+    :param concept_mentions: [ConceptMention objects]
+    :return: [ [cm1, cm2], [cm1, cm3] (in pairs) ... ]
+
+    file output:
+    (delimiter='\t')
+    #TODO: finish document
+
+    For CUI1, CUI2, CUI3
+    CUI1    CUI2 (sequence doesn't matter)
+    CUI1    CUI3
+    CUI2    CUI3
+
+    """
+    f1 = 'equa_concepts.csv'
+    f2 = 'equa_concepts_text.csv'
+    ssc = []
+    for cm1 in concept_mentions:
+        for cm2 in concept_mentions:
+            if cm1.id != cm2.id:
+                if not (cm1.begin > cm2.end or cm2.begin > cm1.end):  # overlapping
+                    ssc.append([cm1, cm2])
+    try:
+        with open(join(_result_dir, f1), 'a') as fout1:
+            with open(join(_result_dir, f2), 'a') as fout2:
+                for pair in ssc:
+                    fout1.write(pair[0].umls.CUI + '\t' + pair[1].umls.CUI + '\n')
+                    fout2.write(pair[0].umls.preferred_text + '\t' + pair[1].umls.preferred_text + '\n')
     except UnicodeEncodeError as ue:
         print(repr(ue))
         traceback.print_exc()
@@ -334,6 +369,7 @@ def main():
                         concept_mentions.append(mention)
 
         itemsets = find_itemsets(concept_mentions)
+        save_same_source_concepts(concept_mentions)
 
         # write to file
         save_itemsets(_result_dir, itemsets)
