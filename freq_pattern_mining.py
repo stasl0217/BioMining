@@ -1,9 +1,18 @@
 """
 This script is to be used for spark.
 
-== Example
+== Usage
 MASTER=local[4] [SPARK_HOME]/bin/spark-submit freq_pattern_mining.py
 MASTER=SCAI01.CS.UCLA.EDU:7077 [SPARK_HOME]/bin/spark-submit freq_pattern_mining.py
+
+
+== input files
+itemsets.csv
+
+== output files
+freqitems.csv
+freq.csv
+
 """
 
 from pyspark import SparkConf, SparkContext
@@ -16,9 +25,10 @@ sc = SparkContext(conf=conf)
 
 def main():
     itemsets_path1 = "./itemsets.csv"
+    min_supp=0.0002
     itemsets = sc.textFile(itemsets_path1).map(lambda line: line.strip().split('\t')).map(
         lambda x: list(set(x)))  # items must be unique
-    model = FPGrowth.train(itemsets, minSupport=0.0008)  # freq=50
+    model = FPGrowth.train(itemsets, minSupport=min_supp)  # freq=50
     result = model.freqItemsets().collect()
 
     with open('./freq.csv', 'w') as fout:

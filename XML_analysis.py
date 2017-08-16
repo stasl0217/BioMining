@@ -46,7 +46,7 @@ os.chdir(r'C:\Users\sinte\LULU\lab\biomining')
 # ** GLOBAL VALUES IN THIS MODULE **
 _xmldir = r'.\xml'  # '.\xml'
 _outdir = r'.\itemsets'
-_result_dir = r'.\result_test'
+_result_dir = r'.\result_para'
 
 _files = [f for f in listdir(_xmldir) if isfile(join(_xmldir, f))]
 
@@ -101,6 +101,7 @@ def scan_sentence_info(tree):
     """
         scan the whole XML element tree for ONCE,
         and save the sentence break information.
+        tag: org.apache.ctakes.typesystem.type.textspan.Sentence
         For every sentence, get its id and beginning/ending position.
 
         NOTE:
@@ -110,9 +111,9 @@ def scan_sentence_info(tree):
         extra SORTING is required here
 
         :param root: root of XML element tree
-        :return: [ tuple (id1, begin1, end1) ...]  naturally ordered by id (reading in sequence from XML)
-        """
-    sentences = []  # all UmlsConcepts listed in the XML document
+        :return: [ Sentence(id, begin, end) objects ...]  naturally ordered by id (reading in sequence from XML)
+    """
+    sentences = []  # Sentence (id, begin, end)
     for el in tree.iter(tag='org.apache.ctakes.typesystem.type.textspan.Sentence'):
         id = el.attrib['sentenceNumber']  # not '_id', which indicates element ids in this XML document
         begin = int(el.attrib['begin'])
@@ -121,7 +122,38 @@ def scan_sentence_info(tree):
     return sentences
 
 
-def extract_concept(ccptmention_dict, FSArrays, concepts, sentence_list):
+def scan_paragraphs(tree):
+    """
+    scan the whole XML element tree for ONCE,
+    and get the newline token information.
+    tag: org.apache.ctakes.typesystem.type.syntax.NewlineToken
+    e.g.:
+    <org.apache.ctakes.typesystem.type.syntax.NewlineToken
+        _indexed="1" _id="357" _ref_sofa="3" b
+        egin="11" end="13" tokenNumber="1"/>
+
+    For every newtoken line, get its id and BEGIN as the paragraph break position.
+    Consider from [this BEGIN, next BEGIN) as one pargraph.
+
+    NOTE:
+    here we assume paragprah_breaks are naturally sorted
+    because they are read in sequence from XML.
+    However, if there are multiple threads or other cases when the assumption cannot hold,
+    extra SORTING is required here
+
+    :param root: root of XML element tree
+    :return: [ positions ...]
+    """
+    paragraph_breaks = [0]  # [ tuple (id, begin), naturally sorted ]
+    for el in tree.iter(tag='org.apache.ctakes.typesystem.type.syntax.NewlineToken'):
+        # NOTE: tokenNumber is not consecutive
+        # NOTE: NOT start from ZERO!
+        position = int(el.attrib['begin'])  # new line begin as paragraph break position
+        paragraph_breaks.append(position)  # tuple (immutable)
+    return paragraph_breaks
+
+
+def extract_concept(ccptmention_dict, FSArrays, concepts, sentence_list, paragraph_breaks):
     """
     :param ccptmention_dict:
     XML attributes stored in a dict.
@@ -139,7 +171,7 @@ def extract_concept(ccptmention_dict, FSArrays, concepts, sentence_list):
         _ref_medicationStatusChange="3711" _ref_medicationStrength="3778"
         _ref_startDate="3827"/>
 
-    :return:
+    :return: ConceptMention(mention_id, type_id, begin, end, umls, sentence_list, paragraph_breaks, negated)
     :raise:
     KeyError, IndexError
     """
@@ -160,7 +192,7 @@ def extract_concept(ccptmention_dict, FSArrays, concepts, sentence_list):
             umls_id = umls_ids[0]
             umls = concepts[umls_id]  # UmlsConcept object
             # last row may raise KeyError (if concepts passed in are not right)
-            concept_mention = ConceptMention(mention_id, type_id, begin, end, umls, sentence_list, negated)
+            concept_mention = ConceptMention(mention_id, type_id, begin, end, umls, sentence_list, paragraph_breaks, negated)
             return concept_mention
 
         else:
@@ -173,19 +205,22 @@ def extract_concept(ccptmention_dict, FSArrays, concepts, sentence_list):
         print 'trouble when trying to extract concept from the concept-mentioning element. This element will be ignored'
 
 
-def find_itemsets(concept_mentions):
+def find_itemsets(concept_mentions, by_paragraph=False):
     """
-    All concepts in one sentence form an itemset
+    All concepts in one sentence(default) or paragraph form an itemset
     :param concept_mentions: [ ConceptMention objects ]
     :return: { sentence Number : [ConceptMention objects] }
     """
     itemsets = {}  # { sentence Number : ConceptMention object}
     for cm in concept_mentions:
-        sentence_id = cm.sentence
-        if itemsets.has_key(sentence_id):
-            itemsets[sentence_id].append(cm)
+        if by_paragraph:
+            unit_id = cm.paragraph
         else:
-            itemsets[sentence_id] = [cm]
+            unit_id = cm.sentence
+        if itemsets.has_key(unit_id):
+            itemsets[unit_id].append(cm)
+        else:
+            itemsets[unit_id] = [cm]
     return itemsets
 
 
@@ -348,6 +383,7 @@ def main():
         FSArrays = scan_FSArrays(tree)
         umls_concepts = scan_UmlsConcepts(tree)
         sentence_list = scan_sentence_info(tree)  # [ tuple (id1, begin1, end1) ...]
+        paragraph_breaks = scan_paragraphs(tree)
 
         # save UMLS concepts info
         save_concepts_csv(_result_dir, umls_concepts)
@@ -363,12 +399,12 @@ def main():
                     # found the Named Entity (concept) mention element
                     attributes = child.attrib  # XML content (dictionary)
                     mention = extract_concept(attributes, FSArrays, umls_concepts,
-                                              sentence_list)  # UmlsConcept (with position info)
+                                              sentence_list, paragraph_breaks)  # UmlsConcept (with position info)
                     if mention is not None:
                         # mention.show()
                         concept_mentions.append(mention)
 
-        itemsets = find_itemsets(concept_mentions)
+        itemsets = find_itemsets(concept_mentions, by_paragraph=True)
         save_same_source_concepts(concept_mentions)
 
         # write to file
