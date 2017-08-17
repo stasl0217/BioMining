@@ -10,7 +10,7 @@ MASTER=SCAI01.CS.UCLA.EDU:7077 [SPARK_HOME]/bin/spark-submit freq_pattern_mining
 itemsets.csv
 
 == output files
-freqitems.csv
+frqitems.csv
 freq.csv
 
 """
