@@ -23,8 +23,17 @@ for file in files:
         with open('men_age.csv', 'a') as f2:
             with open(join(txt_dir, file)) as f:
                 content = f.read().lower()
-                match = prog.search(content)
-                if match:
+
+                # get rid of anything after references
+                reference = content.find('references')
+                content = content[:reference]
+
+                # perhaps there are more than one cases in one paper
+                cases = prog.finditer(content)
+
+                n_cases = 0
+                for match in cases:
+                    n_cases += 1
                     age = int(match.group(1))  # the first bracket
                     age = 1 if match.group(2) == 'month' or match.group(2) == 'day' else age
 
@@ -39,8 +48,11 @@ for file in files:
                         print('not man or woman')
 
                     nfound += 1
-                else:
+                if n_cases == 0:
                     print file
+
+                if n_cases > 1:
+                    print file, n_cases
 
 print('found:')
 print nfound
